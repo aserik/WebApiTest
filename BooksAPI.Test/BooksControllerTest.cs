@@ -100,7 +100,7 @@ namespace BooksAPI.Test
         [TestMethod]
         public async Task PostBook_ShouldCreateNewBookAndRetutnItsDto()
         {
-            var book = new BookDetailDto { Id = 103, Author = "Ralls, Kim", Title = "Integration testing", Price = 100.1m, PublishDate = DateTime.Now };
+            var book = new BookDetailDto { Id = 104, Author = "Ralls, Kim", Title = "Integration testing", Price = 100.1m, PublishDate = DateTime.Now };
 
             using (var client = NewHttpClient())
             {
@@ -141,7 +141,16 @@ namespace BooksAPI.Test
              }
         }
 
-        
+        [TestMethod]
+        public async Task DeleteBook_ShouldException_ifIDinvalid()
+        {
+            int bookID = GetMaxBookExternalId() + 1;
+            using (var client = NewHttpClient())
+            {
+                var resp = await client.DeleteAsync("api/books/" + bookID.ToString());
+                Assert.AreEqual(resp.StatusCode, System.Net.HttpStatusCode.NotFound);
+            }
+        }
 
 
         //[TestMethod]
