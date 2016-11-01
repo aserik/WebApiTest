@@ -1,4 +1,5 @@
 ﻿using BooksAPI.DTOs;
+using BooksAPI.Models;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Collections.Generic;
@@ -11,7 +12,65 @@ namespace BooksAPI.Test
 {
     [TestClass]
     public class BooksControllerTest
-    {      
+
+    {
+        private BooksAPIContext db = new BooksAPIContext();
+
+        private int GetMaxBookExternalId()
+        {
+            return db.Books.Max(b => b.ExternalId);
+        }
+
+        private BookDetailDto addNewBookWithAllFields()
+        {
+            int bookId = GetMaxBookExternalId() + 1;
+            BookDetailDto newBook = new BookDetailDto
+            {
+                Id = bookId,
+                Author = "Ralls, Kim",
+                Title = "Integration testing",
+                Price = 100.1m,
+                Genre = "Genre",
+                Description = "Description",
+                PublishDate = DateTime.Now
+            };
+            db.Books.Add(newBook.ToModel());
+            db.SaveChanges();
+            return newBook;
+        }
+
+        private BookDetailDto getDetailBookByExternalId(int bookId)
+        {
+            try
+            {
+                return (from b in db.Books
+                        join a in db.Authors on b.AuthorId equals a.AuthorId
+                        where b.ExternalId == bookId
+                        select new BookDetailDto
+                        {
+                            Id = b.ExternalId,
+                            Title = b.Title,
+                            Genre = b.Genre,
+                            PublishDate = b.PublishDate,
+                            Price = b.Price,
+                            Description = b.Description,
+                            Author = b.Author.Name
+                        }).First();
+            }
+            catch (Exception E) { return null; }
+        }
+
+        private int GetBooksCount()
+        {
+            return db.Books.Count();
+        }
+
+        private BookDto BookDetailToBook(BookDetailDto book)
+        {
+            return new BookDto { Id = book.Id, Author = book.Author, Genre = book.Genre, Title = book.Title };
+        }
+
+
         private HttpClient NewHttpClient()
         {
             var client = new HttpClient();
@@ -41,7 +100,7 @@ namespace BooksAPI.Test
         [TestMethod]
         public async Task PostBook_ShouldCreateNewBookAndRetutnItsDto()
         {
-            var book = new BookDetailDto { Id = 102, Author = "Ralls, Kim", Title = "Integration testing", Price = 100.1m, PublishDate = DateTime.Now };
+            var book = new BookDetailDto { Id = 103, Author = "Ralls, Kim", Title = "Integration testing", Price = 100.1m, PublishDate = DateTime.Now };
 
             using (var client = NewHttpClient())
             {
@@ -56,19 +115,34 @@ namespace BooksAPI.Test
         [TestMethod]
         public async Task PutBook_ShouldUpdateBook_IfBookExistsInDatabase()
         {
-            var book = new BookDetailDto { Id = 102, Author = "Ralls, Kim", Title = "New testing", Price = 100.1m, PublishDate = DateTime.Now };
+            var book = new BookDetailDto { Id = 103, Author = "Ralls, Kim", Title = "New testing", Price = 100.1m, PublishDate = DateTime.Now };
 
             using (var client = NewHttpClient())
             {
-                var resp = await client.PutAsJsonAsync("api/books/102", book);
+                var resp = await client.PutAsJsonAsync("api/books/103", book);
                 resp.EnsureSuccessStatusCode();
 
             }
-
-
         }
 
-       
+        [TestMethod]
+        public async Task DeleteBook_ShouldDelBook_ifIDValid()
+        {
+            int bookID = addNewBookWithAllFields().Id;
+            int countBooksBeforeTest = GetBooksCount();
+
+            using (var client = NewHttpClient())
+            {
+              var resp = await client.DeleteAsync("api/books/" + bookID.ToString());
+              resp.EnsureSuccessStatusCode();
+
+              Assert.AreEqual(countBooksBeforeTest - 1, GetBooksCount());
+              Assert.AreEqual(null, getDetailBookByExternalId(bookID)); 
+             }
+        }
+
+        
+
 
         //[TestMethod]
         //public async Task GetBooks_ShouldRetutnAllBooks_ViaInMemoryHttpServer()
