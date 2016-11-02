@@ -81,11 +81,8 @@ namespace BooksAPI.Test
         }
 
         [TestMethod]
-        public async Task GetBooks_ShouldRetutnAllBooks_IfBookIdIsNotProvided()
+        public async Task GetBooks_ShouldReturnAllBooks_IfBookIdIsNotProvided()
         {
-            var count = Enumerable.Range(0, 560);
-            foreach (var attempt in count)
-            {
                 using (var client = NewHttpClient())
                 {
                     var resp = await client.GetAsync("api/books");
@@ -93,14 +90,74 @@ namespace BooksAPI.Test
                     var books = await resp.Content.ReadAsAsync<List<BookDto>>();
                     Assert.IsTrue(books.Count > 0);
                 }
+           
+        }
+
+        //[TestMethod]
+        //public async Task GetBook_ShouldReturnOneBook_IfBookIdValid()
+        //{
+        //    using (var client = NewHttpClient())
+        //    {
+        //        var resp = await client.GetAsync("api/books/1");
+        //        resp.EnsureSuccessStatusCode();
+        //        var book = await resp.Content.ReadAsAsync<BookDto>();
+        //        Assert.AreEqual("Midnight Rain", book.Title);
+        //    }
+        //}
+
+
+        [TestMethod]
+        public async Task GetBook_ShouldReturnOneBook_IfBookIdValid()
+        {
+
+            var expectedBook = addNewBookWithAllFields();
+            using (var client = NewHttpClient())
+            {
+                var resp = await client.GetAsync($"api/books/{expectedBook.Id}" );
+                resp.EnsureSuccessStatusCode();
+                var actualBook = await resp.Content.ReadAsAsync<BookDto>();
+                Assert.AreEqual(expectedBook.Title, actualBook.Title);
+                Assert.AreEqual(expectedBook.Id, actualBook.Id);
+                Assert.AreEqual(expectedBook.Author, actualBook.Author);
             }
         }
+
+
+        //[TestMethod]
+        //public async Task GetBook_ShouldReturnDetailsOneBook_IfBookIdValid()
+        //{
+
+        //    var expectedBook = addNewBookWithAllFields();
+        //    int bookID = addNewBookWithAllFields().Id;
+        //    using (var client = NewHttpClient())
+        //    {
+        //        var resp = await client.GetAsync("api/books/" + bookID.ToString() + "/details" );
+        //        resp.EnsureSuccessStatusCode();
+        //        var actualBook = await resp.Content.ReadAsAsync<BookDto>();
+        //        Assert.AreEqual(expectedBook.Title, actualBook.Title);
+        //        Assert.AreEqual(expectedBook.Id, actualBook.Id);
+        //        Assert.AreEqual(expectedBook.Author, actualBook.Author);
+        //        Assert.AreEqual(expectedBook.Genre, actualBook.Genre);
+        //    }
+        //}
+
+
+        public async Task GetBook_ShouldReturnOneBook_IfBookIdInvalid()
+        {
+            int bookID = GetMaxBookExternalId() + 1000;
+            using (var client = NewHttpClient())
+            {
+                var resp = await client.GetAsync("api/books/" + bookID.ToString());
+                Assert.AreEqual(resp.StatusCode, System.Net.HttpStatusCode.NotFound);
+            }
+        }
+
 
 
         [TestMethod]
         public async Task PostBook_ShouldCreateNewBookAndRetutnItsDto()
         {
-            var book = new BookDetailDto { Id = 104, Author = "Ralls, Kim", Title = "Integration testing", Price = 100.1m, PublishDate = DateTime.Now };
+            var book = new BookDetailDto { Id = 105, Author = "Ralls, Kim", Title = "Integration testing", Price = 100.1m, PublishDate = DateTime.Now };
 
             using (var client = NewHttpClient())
             {
